@@ -46,45 +46,59 @@
       </dl>
     </section>
 
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Leaderboards">
+      <button type="button" role="tab" id="tab-colleges" aria-controls="panel-colleges" aria-selected="true" data-tab="colleges">Colleges</button>
+      <button type="button" role="tab" id="tab-referrers" aria-controls="panel-referrers" aria-selected="false" data-tab="referrers" tabindex="-1">Referrers</button>
+      <span class="tab-ind" aria-hidden="true"></span>
+    </nav>
+
+    <div class="panels" id="panels">
+      <section class="tab-panel" id="panel-colleges" role="tabpanel" aria-labelledby="tab-colleges">
     <!-- leading institution -->
-    <section class="champ-wrap" aria-labelledby="champLabel">
-      <article class="champ" id="champ">
-        <div class="champ-ring" aria-hidden="true"></div>
-        <div class="champ-body">
-          <p class="champ-label" id="champLabel">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 8.5 7.5 12 12 5l4.5 7L21 8.5 19 18H5L3 8.5Z" fill="currentColor"/></svg>
-            Leading institution
-          </p>
-          <h2 class="champ-name" id="champName"><span class="sk sk-line w80"></span><span class="sk sk-line w50"></span></h2>
-          <p class="champ-count"><span class="roll" id="champCount">0</span><span class="champ-unit">submissions</span></p>
-          <p class="champ-lead" id="champLead"></p>
-        </div>
-      </article>
-    </section>
-
-    <!-- referrers -->
-    <section class="block" aria-labelledby="refTitle">
-      <header class="block-head" data-reveal>
-        <h2 id="refTitle">Top referrers</h2>
-        <p>By submissions</p>
-      </header>
-      <div class="podium" id="podium">
-        <div class="pod sk-pod"></div><div class="pod sk-pod"></div><div class="pod sk-pod"></div>
+      <section class="champ-wrap" aria-labelledby="champLabel">
+        <article class="champ" id="champ">
+          <div class="champ-ring" aria-hidden="true"></div>
+          <div class="champ-body">
+            <p class="champ-label" id="champLabel">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 8.5 7.5 12 12 5l4.5 7L21 8.5 19 18H5L3 8.5Z" fill="currentColor"/></svg>
+              Leading institution
+            </p>
+            <h2 class="champ-name" id="champName"><span class="sk sk-line w80"></span><span class="sk sk-line w50"></span></h2>
+            <p class="champ-count"><span class="roll" id="champCount">0</span><span class="champ-unit">submissions</span></p>
+            <p class="champ-lead" id="champLead"></p>
+          </div>
+        </article>
+      </section>
+  
+      <!-- institutions -->
+      <div class="block">
+        <header class="block-head" data-reveal>
+          <h2 id="instTitle">Institutions</h2>
+          <p>By submissions</p>
+        </header>
+        <ol class="list" id="instList">
+          <li class="row sk-row"></li><li class="row sk-row"></li><li class="row sk-row"></li>
+        </ol>
+        <button class="more" id="instMore" type="button" hidden></button>
       </div>
-      <ol class="list" id="refList"></ol>
-    </section>
+  
+      </section>
 
-    <!-- institutions -->
-    <section class="block" aria-labelledby="instTitle">
-      <header class="block-head" data-reveal>
-        <h2 id="instTitle">Institutions</h2>
-        <p>By submissions</p>
-      </header>
-      <ol class="list" id="instList">
-        <li class="row sk-row"></li><li class="row sk-row"></li><li class="row sk-row"></li>
-      </ol>
-      <button class="more" id="instMore" type="button" hidden></button>
-    </section>
+      <section class="tab-panel" id="panel-referrers" role="tabpanel" aria-labelledby="tab-referrers" hidden>
+    <!-- referrers -->
+      <div class="block">
+        <header class="block-head" data-reveal>
+          <h2 id="refTitle">Top referrers</h2>
+          <p>By submissions</p>
+        </header>
+        <div class="podium" id="podium">
+          <div class="pod sk-pod"></div><div class="pod sk-pod"></div><div class="pod sk-pod"></div>
+        </div>
+        <ol class="list" id="refList"></ol>
+      </div>
+  
+      </section>
+    </div>
 
     <!-- events -->
     <section class="block" aria-labelledby="evTitle">

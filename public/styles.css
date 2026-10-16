@@ -211,3 +211,99 @@ h1 span { background: var(--grad); -webkit-background-clip: text; background-cli
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   [data-reveal], .pod, .pod-name, .pod-inst, .champ-name .ch { opacity: 1 !important; transform: none !important; clip-path: none !important; }
 }
+
+/* =================== compact mobile + tabs =================== */
+.intro { padding-top: 16px; }
+.eyebrow { font-size: 10px; }
+h1 { margin-top: 8px; font-size: clamp(28px, 8.6vw, 60px); line-height: 0.9; }
+.totals { margin-top: 14px; }
+.totals div { padding: 9px 0; }
+.totals div + div { padding-left: 12px; }
+.totals dt { font-size: 9px; }
+.totals dd { margin-top: 6px; font-size: 22px; }
+
+/* tabs */
+.tabs {
+  position: sticky; top: calc(var(--bar-h) + 6px); z-index: 30; margin: 16px 0 0;
+  display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: 14px;
+  background: rgba(22, 17, 18, 0.86); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid var(--line-2); box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.9);
+}
+.tabs button { position: relative; z-index: 1; height: 38px; border: 0; border-radius: 10px; background: none; color: var(--mute); font-weight: 700; font-size: 14px; cursor: pointer; transition: color 0.3s, transform 0.12s; }
+.tabs button:active { transform: scale(0.97); }
+.tabs button[aria-selected="true"] { color: #fff; }
+.tab-ind { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 10px; background: var(--grad); box-shadow: 0 8px 20px -10px rgba(255, 59, 46, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.25); transition: transform 0.45s var(--out); }
+.tabs[data-tab="referrers"] .tab-ind { transform: translateX(100%); }
+.panels { touch-action: pan-y; }
+.tab-panel { animation: panelIn 0.45s var(--out); }
+.tab-panel.from-left { animation-name: panelInL; }
+@keyframes panelIn { from { opacity: 0; transform: translateX(18px); } }
+@keyframes panelInL { from { opacity: 0; transform: translateX(-18px); } }
+
+/* champion card */
+.champ-wrap { margin-top: 14px; }
+.champ { border-radius: 20px; }
+.champ-body { border-radius: 18.5px; padding: 16px 16px 15px; }
+.champ-label { padding: 5px 9px; font-size: 9.5px; }
+.champ-name { margin-top: 12px; min-height: 0; font-size: clamp(22px, 6.6vw, 40px); }
+.champ-count { margin-top: 10px; gap: 8px; }
+.champ-count .roll { font-size: 46px; }
+.champ-unit { font-size: 10px; }
+.champ-lead { margin-top: 6px; font-size: 12.5px; }
+
+/* blocks + lists */
+.block { margin-top: 22px; }
+.block-head { margin-bottom: 8px; }
+.block-head h2 { font-size: 20px; }
+.block-head p { font-size: 9.5px; }
+.list { gap: 5px; margin-top: 6px; }
+.row { min-height: 50px; gap: 10px; padding: 8px 12px 8px 10px; border-radius: 12px; grid-template-columns: 22px minmax(0, 1fr) auto; }
+.row.sk-row { min-height: 50px; }
+.rk { font-size: 11px; }
+.who b { font-size: 14px; }
+.who span { font-size: 10px; }
+.score b { font-size: 22px; }
+.score small { font-size: 8.5px; }
+.more { height: 42px; font-size: 13px; }
+
+/* podium */
+.podium { gap: 6px; }
+.pod { min-height: 0; padding: 12px; border-radius: 16px; }
+.pod.sk-pod { min-height: 96px; }
+.pod.sk-pod:first-child { min-height: 128px; }
+.pod[data-rank="1"] { padding: 14px 14px 13px; }
+.medal { width: 28px; height: 28px; font-size: 13px; }
+.pod[data-rank="1"] .medal { width: 34px; height: 34px; font-size: 15px; }
+.pod-num b { font-size: 26px; }
+.pod[data-rank="1"] .pod-num b { font-size: 40px; }
+.pod-num small { font-size: 8.5px; }
+.pod-name { margin-top: 10px; font-size: 14px; }
+.pod[data-rank="1"] .pod-name { font-size: 24px; }
+.pod-inst { margin-top: 4px; font-size: 10px; }
+.pod[data-rank="1"] .pod-inst { font-size: 11px; }
+.pod-empty { padding: 18px 14px; font-size: 13px; }
+.pod-empty b { font-size: 15px; }
+
+/* events */
+.events { gap: 6px; }
+.ev { min-height: 0; padding: 12px; border-radius: 14px; }
+.ev-name { font-size: 16px; }
+.ev-state { margin-top: 6px; font-size: 8.5px; }
+.ev-num { margin-top: 12px; font-size: 30px; }
+.ev-unit { font-size: 8.5px; }
+.foot { margin-top: 32px; }
+
+@media (min-width: 720px) {
+  h1 { font-size: 60px; }
+  .totals dd { font-size: 32px; }
+  .tabs { max-width: 360px; }
+  .champ-body { padding: 24px 26px 22px; }
+  .champ-name { font-size: 40px; }
+  .champ-count .roll { font-size: 68px; }
+  .pod[data-rank="1"] { min-height: 190px; }
+  .pod[data-rank="2"] { min-height: 150px; }
+  .pod[data-rank="3"] { min-height: 130px; }
+  .pod[data-rank="1"] .pod-name { font-size: 30px; }
+  .pod[data-rank="1"] .pod-num b { font-size: 52px; }
+}
+@media (prefers-reduced-motion: reduce) { .tab-panel { animation: none; } }

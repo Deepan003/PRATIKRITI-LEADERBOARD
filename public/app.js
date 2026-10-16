@@ -227,6 +227,66 @@
     }));
   }
 
+  // ---------------------------------------------------------------- tabs
+  const tabs = $('#tabs');
+  const tabOrder = ['colleges', 'referrers'];
+  function setTab(name, { push = true, focus = false } = {}) {
+    if (!tabOrder.includes(name)) name = 'colleges';
+    const prev = tabs.dataset.tab || 'colleges';
+    tabs.dataset.tab = name;
+    for (const id of tabOrder) {
+      const btn = $(`#tab-${id}`);
+      const panel = $(`#panel-${id}`);
+      const on = id === name;
+      btn.setAttribute('aria-selected', String(on));
+      btn.tabIndex = on ? 0 : -1;
+      if (on && panel.hidden) {
+        panel.hidden = false;
+        panel.classList.toggle('from-left', tabOrder.indexOf(name) < tabOrder.indexOf(prev));
+        panel.style.animation = 'none';
+        void panel.offsetWidth;
+        panel.style.animation = '';
+        // content that was hidden: reveal what is now on screen
+        requestAnimationFrame(() => $$('[data-reveal], .pod, .champ', panel).forEach((n) => {
+          const r = n.getBoundingClientRect();
+          if (r.top < innerHeight && r.bottom > 0) n.classList.add('is-in');
+        }));
+      } else if (!on) {
+        panel.hidden = true;
+      }
+      if (on && focus) btn.focus();
+    }
+    if (push) history.replaceState(null, '', name === 'colleges' ? location.pathname : `#${name}`);
+    const top = tabs.getBoundingClientRect().top;
+    if (push && top < 60) scrollTo({ top: scrollY + top - 70, behavior: calm() ? 'auto' : 'smooth' });
+    if (push) { try { navigator.vibrate?.(8); } catch { /* unsupported */ } }
+  }
+  tabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-tab]');
+    if (btn && btn.getAttribute('aria-selected') !== 'true') setTab(btn.dataset.tab);
+  });
+  tabs.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const i = tabOrder.indexOf(tabs.dataset.tab || 'colleges');
+    setTab(tabOrder[(i + (e.key === 'ArrowRight' ? 1 : tabOrder.length - 1)) % tabOrder.length], { focus: true });
+  });
+  // swipe sideways on the leaderboards to switch tabs
+  const panels = $('#panels');
+  let sx = null;
+  let sy = 0;
+  panels.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') { sx = e.clientX; sy = e.clientY; } }, { passive: true });
+  panels.addEventListener('pointercancel', () => { sx = null; });
+  panels.addEventListener('pointerup', (e) => {
+    if (sx == null) return;
+    const dx = e.clientX - sx;
+    const dy = e.clientY - sy;
+    sx = null;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > 50) return;
+    const next = dx < 0 ? 'referrers' : 'colleges';
+    if (next !== (tabs.dataset.tab || 'colleges')) setTab(next);
+  });
+  setTab(location.hash === '#referrers' ? 'referrers' : 'colleges', { push: false });
+
   // ---------------------------------------------------------------- page
   $$('[data-reveal]').forEach((n) => reveal(n));
   let queued = false;
