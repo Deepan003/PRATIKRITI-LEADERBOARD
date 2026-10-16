@@ -1,0 +1,9 @@
+{
+  "name": "pratikriti-institutional-referral-counter",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pratikriti Institutional Referral Counter (out-house referral leaderboard)",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "dev": "vercel dev" }
+}

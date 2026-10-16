@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0808">
+  <title>Pratikriti · Institutional Referral Counter</title>
+  <meta name="description" content="Live institutional referral leaderboard for Pratikriti, Day 0 of IEMPACT.">
+  <meta property="og:title" content="Pratikriti · Institutional Referral Counter">
+  <meta property="og:description" content="Which institution is leading? Live referral leaderboard for Pratikriti, Day 0 of IEMPACT.">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@500;600&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body class="is-loading">
+  <div class="atmos" aria-hidden="true"><i></i><i></i></div>
+
+  <header class="bar" id="bar">
+    <span class="brand">
+      <img class="brand-club" src="assets/photography-club.png" alt="IEM Photography Club" width="28" height="28">
+      <span class="brand-rule" aria-hidden="true"></span>
+      <picture>
+        <source srcset="assets/pratikriti.webp" type="image/webp">
+        <img class="brand-logo" src="assets/pratikriti.png" alt="Pratikriti" width="118" height="22">
+      </picture>
+    </span>
+    <span class="live" id="live"><i aria-hidden="true"></i><span id="liveLabel">Live</span></span>
+  </header>
+
+  <main>
+    <section class="intro">
+      <p class="eyebrow">Day 0 of IEMPACT</p>
+      <h1>Institutional<br><span>Referral Counter</span></h1>
+      <dl class="totals">
+        <div><dt>Submissions</dt><dd class="roll" id="tSubs">0</dd></div>
+        <div><dt>Institutions</dt><dd class="roll" id="tInst">0</dd></div>
+        <div><dt>Referrers</dt><dd class="roll" id="tRefs">0</dd></div>
+      </dl>
+    </section>
+
+    <!-- leading institution -->
+    <section class="champ-wrap" aria-labelledby="champLabel">
+      <article class="champ" id="champ">
+        <div class="champ-ring" aria-hidden="true"></div>
+        <div class="champ-body">
+          <p class="champ-label" id="champLabel">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 8.5 7.5 12 12 5l4.5 7L21 8.5 19 18H5L3 8.5Z" fill="currentColor"/></svg>
+            Leading institution
+          </p>
+          <h2 class="champ-name" id="champName"><span class="sk sk-line w80"></span><span class="sk sk-line w50"></span></h2>
+          <p class="champ-count"><span class="roll" id="champCount">0</span><span class="champ-unit">submissions</span></p>
+          <p class="champ-lead" id="champLead"></p>
+        </div>
+      </article>
+    </section>
+
+    <!-- referrers -->
+    <section class="block" aria-labelledby="refTitle">
+      <header class="block-head" data-reveal>
+        <h2 id="refTitle">Top referrers</h2>
+        <p>By submissions</p>
+      </header>
+      <div class="podium" id="podium">
+        <div class="pod sk-pod"></div><div class="pod sk-pod"></div><div class="pod sk-pod"></div>
+      </div>
+      <ol class="list" id="refList"></ol>
+    </section>
+
+    <!-- institutions -->
+    <section class="block" aria-labelledby="instTitle">
+      <header class="block-head" data-reveal>
+        <h2 id="instTitle">Institutions</h2>
+        <p>By submissions</p>
+      </header>
+      <ol class="list" id="instList">
+        <li class="row sk-row"></li><li class="row sk-row"></li><li class="row sk-row"></li>
+      </ol>
+      <button class="more" id="instMore" type="button" hidden></button>
+    </section>
+
+    <!-- events -->
+    <section class="block" aria-labelledby="evTitle">
+      <header class="block-head" data-reveal>
+        <h2 id="evTitle">Events</h2>
+        <p>All entries</p>
+      </header>
+      <div class="events" id="events">
+        <div class="ev sk-ev"></div><div class="ev sk-ev"></div><div class="ev sk-ev"></div><div class="ev sk-ev"></div>
+      </div>
+    </section>
+
+    <p class="error" id="error" role="status" hidden></p>
+  </main>
+
+  <footer class="foot">
+    <picture>
+      <source srcset="assets/iempact.webp" type="image/webp">
+      <img class="foot-art" src="assets/iempact.png" alt="IEMPACT" width="160" height="77" loading="lazy" decoding="async">
+    </picture>
+    <p><b>PRATIKRITI</b> — Day 0 of IEMPACT</p>
+    <p class="foot-note">IEM Photography Club · updates every minute</p>
+  </footer>
+</body>
+</html>

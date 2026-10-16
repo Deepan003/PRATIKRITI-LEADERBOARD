@@ -1,0 +1,239 @@
+/* Pratikriti · Institutional Referral Counter — client.
+ * No frameworks, no third-party scripts. All data goes in as text nodes, never innerHTML. */
+(() => {
+  'use strict';
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const nf = new Intl.NumberFormat('en-IN');
+  const plural = (n, one, many) => (n === 1 ? one : many || `${one}s`);
+  const POLL_MS = 60_000;
+
+  function h(tag, attrs, ...kids) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === 'class') node.className = v;
+      else node.setAttribute(k, v === true ? '' : String(v));
+    }
+    for (const kid of kids.flat()) {
+      if (kid == null || kid === false) continue;
+      node.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+    }
+    return node;
+  }
+  const b = (t) => h('b', null, t);
+
+  const el = {
+    bar: $('#bar'), live: $('#live'), liveLabel: $('#liveLabel'),
+    tSubs: $('#tSubs'), tInst: $('#tInst'), tRefs: $('#tRefs'),
+    champ: $('#champ'), champName: $('#champName'), champCount: $('#champCount'), champLead: $('#champLead'),
+    podium: $('#podium'), refList: $('#refList'), instList: $('#instList'), instMore: $('#instMore'),
+    events: $('#events'), error: $('#error'),
+  };
+  const S = { data: null, sig: '', timer: 0, failures: 0, pending: false, showAllInst: false };
+
+  // ---------------------------------------------------------------- motion helpers
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      e.target.classList.add('is-in');
+      io.unobserve(e.target);
+    }
+  }, { rootMargin: '0px 0px -6% 0px', threshold: 0.1 });
+  const reveal = (n, delay = 0) => {
+    n.style.setProperty('--d', `${delay}ms`);
+    if (calm()) { n.classList.add('is-in'); return; }
+    io.observe(n);
+    // already on screen: reveal on the next frame instead of waiting for the observer
+    requestAnimationFrame(() => {
+      const r = n.getBoundingClientRect();
+      if (r.top < innerHeight && r.bottom > 0) { n.classList.add('is-in'); io.unobserve(n); }
+    });
+  };
+  // safety net: never leave content hidden if the observer is unavailable or late
+  setTimeout(() => $$('[data-reveal]:not(.is-in), .pod:not(.is-in), .champ:not(.is-in)').forEach((n) => {
+    const r = n.getBoundingClientRect();
+    if (r.top < innerHeight * 1.5) n.classList.add('is-in');
+  }), 3000);
+
+  /** Scoreboard digits that roll into place. */
+  function roll(node, value) {
+    const text = nf.format(value);
+    if (calm()) { node.textContent = text; node._cols = null; return; }
+    let cols = node._cols;
+    if (!cols || node._len !== text.length) {
+      node.textContent = '';
+      node._sr = h('span', { class: 'sr' });
+      node.append(node._sr);
+      cols = [...text].map((ch) => {
+        if (!/\d/.test(ch)) { node.append(h('span', { class: 'sep', 'aria-hidden': 'true' }, ch)); return null; }
+        const strip = h('span', { class: 'strip' }, [...'0123456789'].map((d) => h('span', null, d)));
+        node.append(h('span', { class: 'digit', 'aria-hidden': 'true' }, strip));
+        return strip;
+      });
+      node._cols = cols;
+      node._len = text.length;
+      void node.offsetWidth;
+    }
+    node._sr.textContent = text;
+    [...text].forEach((ch, i) => {
+      if (!cols[i]) return;
+      cols[i].style.transitionDelay = `${(text.length - 1 - i) * 70}ms`;
+      cols[i].style.transform = `translateY(${-Number(ch) * 10}%)`;
+    });
+  }
+
+  // ---------------------------------------------------------------- data
+  async function sync() {
+    clearTimeout(S.timer);
+    try {
+      const res = await fetch('/api/board', { headers: { Accept: 'application/json' }, credentials: 'omit', signal: AbortSignal.timeout(15000) });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || !Array.isArray(body.institutions)) throw Object.assign(new Error('bad'), { code: body && body.error });
+      S.failures = 0;
+      el.error.hidden = true;
+      el.live.classList.remove('is-stale');
+      el.liveLabel.textContent = 'Live';
+      apply(body);
+      S.timer = setTimeout(tick, POLL_MS + Math.random() * 8000);
+    } catch (err) {
+      S.failures += 1;
+      el.live.classList.add('is-stale');
+      el.liveLabel.textContent = 'Offline';
+      if (!S.data) {
+        el.error.textContent = err.code === 'not_configured' ? 'The leaderboard is being set up. Check back soon.' : "Can't load the leaderboard right now. Retrying…";
+        el.error.hidden = false;
+      }
+      S.timer = setTimeout(tick, Math.min(15000 * 2 ** (S.failures - 1), 180000));
+    } finally {
+      document.body.classList.remove('is-loading');
+    }
+  }
+  function tick() {
+    if (document.hidden) S.pending = true;
+    else sync();
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && S.pending) { S.pending = false; sync(); } });
+
+  function apply(data) {
+    const sig = JSON.stringify([data.totals, data.institutions, data.referrers, data.events]);
+    if (sig === S.sig) return;
+    const first = !S.sig;
+    S.sig = sig;
+    S.data = data;
+    roll(el.tSubs, data.totals.submissions);
+    roll(el.tInst, data.totals.institutions);
+    roll(el.tRefs, data.totals.referrers);
+    renderChamp(first);
+    renderPodium();
+    renderInstitutions();
+    renderEvents();
+  }
+
+  // ---------------------------------------------------------------- leading institution
+  function renderChamp(first) {
+    const [top, second] = S.data.institutions;
+    const lead = top && top.submissions > 0 ? top : null;
+    el.champ.classList.toggle('is-empty', !lead);
+    const label = lead ? lead.name : 'Open race';
+    if (el.champName.dataset.name !== label) {
+      el.champName.dataset.name = label;
+      el.champName.setAttribute('aria-label', label);
+      // letter-by-letter reveal, grouped per word so names wrap cleanly
+      let i = 0;
+      el.champName.replaceChildren(...label.split(' ').flatMap((word, wi) => {
+        const w = h('span', { 'aria-hidden': 'true' }, [...word].map((c) => {
+          const ch = h('span', { class: 'ch' }, c);
+          ch.style.setProperty('--i', String(i++));
+          return ch;
+        }));
+        w.style.whiteSpace = 'nowrap';
+        return wi ? [' ', w] : [w];
+      }));
+      if (!first) { el.champ.classList.remove('is-in'); void el.champ.offsetWidth; }
+      if (calm() || !first) el.champ.classList.add('is-in'); else reveal(el.champ);
+    }
+    roll(el.champCount, lead ? lead.submissions : 0);
+    if (!lead) el.champLead.textContent = 'The first submission takes the lead.';
+    else if (second && second.submissions === lead.submissions) el.champLead.replaceChildren('Tied with ', b(second.name));
+    else if (second) el.champLead.replaceChildren(b(`${lead.submissions - second.submissions} ahead`), ` of ${second.name}`);
+    else el.champLead.textContent = 'The only institution on the board so far.';
+  }
+
+  // ---------------------------------------------------------------- referrers
+  function renderPodium() {
+    const refs = S.data.referrers;
+    if (!refs.length) {
+      el.podium.replaceChildren(h('div', { class: 'pod-empty' }, b('Leaderboard opens soon'), 'The first referred submission puts a name here.'));
+      el.refList.replaceChildren();
+      return;
+    }
+    const pods = refs.slice(0, 3).map((r, i) => {
+      const rank = i + 1;
+      return h('article', { class: 'pod', 'data-rank': rank, 'aria-label': `${rank}. ${r.name}, ${r.institution}: ${r.submissions} ${plural(r.submissions, 'submission')}` },
+        h('div', { class: 'pod-top' },
+          h('span', { class: 'medal', 'aria-hidden': 'true' }, rank),
+          h('span', { class: 'pod-num', 'aria-hidden': 'true' }, b(nf.format(r.submissions)), h('small', null, plural(r.submissions, 'submission')))),
+        h('p', { class: 'pod-name', 'aria-hidden': 'true' }, r.name),
+        h('p', { class: 'pod-inst', 'aria-hidden': 'true' }, r.institution || '—'));
+    });
+    el.podium.replaceChildren(...pods);
+    pods.forEach((p, i) => reveal(p, i === 0 ? 0 : 120 + i * 90));
+
+    const max = Math.max(1, refs[0].submissions);
+    el.refList.replaceChildren(...refs.slice(3, 20).map((r, i) => row(r.rank, r.name, r.institution, r.submissions, max, i)));
+  }
+
+  // ---------------------------------------------------------------- institutions
+  function renderInstitutions() {
+    const all = S.data.institutions;
+    const list = all.slice(1); // #1 is the hero card above
+    const shown = S.showAllInst ? list : list.slice(0, 7);
+    const max = Math.max(1, all[0] ? all[0].submissions : 1);
+    el.instList.replaceChildren(...shown.map((x, i) => row(x.rank, x.name, eventLine(x), x.submissions, max, i)));
+    if (!list.length) el.instList.replaceChildren(h('li', { class: 'pod-empty' }, 'More institutions appear as entries come in.'));
+    el.instMore.hidden = list.length <= 7;
+    el.instMore.textContent = S.showAllInst ? 'Show less' : `Show all ${all.length}`;
+  }
+  el.instMore.addEventListener('click', () => { S.showAllInst = !S.showAllInst; renderInstitutions(); });
+
+  function eventLine(x) {
+    return S.data.events.filter((e) => x.events[e.key]).map((e) => `${e.name} ${x.events[e.key]}`).join(' · ')
+      || `${x.registrations} ${plural(x.registrations, 'entry', 'entries')}`;
+  }
+
+  function row(rank, title, sub, value, max, i) {
+    const li = h('li', { class: `row${value ? '' : ' is-zero'}`, 'data-reveal': true },
+      h('span', { class: 'rk' }, String(rank).padStart(2, '0')),
+      h('span', { class: 'who' }, b(title), h('span', null, sub || '')),
+      h('span', { class: 'score' }, b(nf.format(value)), h('small', null, plural(value, 'sub'))));
+    li.style.setProperty('--w', (value / max).toFixed(3));
+    reveal(li, Math.min(i * 50, 400));
+    return li;
+  }
+
+  // ---------------------------------------------------------------- events
+  function renderEvents() {
+    el.events.replaceChildren(...S.data.events.map((e, i) => {
+      const card = h('div', { class: `ev${e.open ? ' is-open' : ''}`, 'data-reveal': true },
+        h('p', { class: 'ev-name' }, e.name),
+        h('span', { class: 'ev-state' }, e.open ? h('i', { 'aria-hidden': 'true' }) : null, e.open ? 'Submissions open' : 'Opens soon'),
+        h('p', { class: 'ev-num' }, nf.format(e.open ? e.submissions : e.registrations)),
+        h('p', { class: 'ev-unit' }, e.open ? plural(e.submissions, 'submission') : plural(e.registrations, 'registration')));
+      reveal(card, i * 70);
+      return card;
+    }));
+  }
+
+  // ---------------------------------------------------------------- page
+  $$('[data-reveal]').forEach((n) => reveal(n));
+  let queued = false;
+  addEventListener('scroll', () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; el.bar.classList.toggle('is-scrolled', scrollY > 6); });
+  }, { passive: true });
+  sync();
+})();
