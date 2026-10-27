@@ -26,7 +26,8 @@ A **Rep login** button in the header lets each college representative sign in wi
 **referral code** and a **password** from the sheet. They then see a welcome page with their
 registrations, submissions and rank, an event filter, and the list of people who registered with
 their code. Tap a person to see their phone number (tap to call), college, event, genre and date.
-Registrations from excluded colleges are listed but marked "not counted".
+Every registration made with a rep's code counts for that rep, whatever college the person
+gave (their own college, another one, IEM, or none).
 
 **What to add to the sheet (once):**
 
@@ -70,12 +71,16 @@ overall per 15 minutes. A rep can only ever see registrations made with their ow
 | --- | --- |
 | `REFERRALS` | NAME, INSTITUITION, SUBMISSIONS, REFERRALS TOTAL, one column per event |
 | `DATA` | EVENT, INSTITUTE, SUBMISSIONS |
-| `EXCLUDE` | column A: colleges that don't count (e.g. IEM Salt Lake, NA) |
-| `SETTINGS` | EVENT, SUBMISSIONS OPEN? |
+| `EXCLUDE` | column A: colleges left out of the institution ranking (e.g. IEM Salt Lake, NA) |
+| `RAW_<EVENT>` | form responses: name, college, the referral code column and photo count column named in SETTINGS |
+| `SETTINGS` | EVENT, REFERRAL COL, COUNT COL, SUBMISSIONS OPEN? |
 
 Columns are found by their **header text**, so reordering columns is fine. Renaming a header or a tab is
 not: if you rename one, update `lib/board.js`. Referrers with 0 registrations and 0 submissions are hidden.
-Excluded colleges never appear in the institution ranking, but their entries still count in the event totals.
+Excluded colleges never appear in the institution ranking, but their entries still count in the event totals
+and for the referrer whose code they used. Referrer counts are taken straight from the RAW_ form tabs
+(every use of a code counts); the REFERRALS tab's own SUBMISSIONS / REFERRALS TOTAL columns are only used
+if the RAW_ tabs can't be read.
 
 ## Setup
 

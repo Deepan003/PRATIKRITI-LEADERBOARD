@@ -482,7 +482,7 @@
       const id = `${p.event}|${p.name}|${p.when}`;
       const ev = evName[p.event] || { name: p.event, open: false };
       const open = P.open.has(id);
-      const li = h('li', { class: `pp${open ? ' is-open' : ''}${p.counted ? '' : ' is-off'}` });
+      const li = h('li', { class: `pp${open ? ' is-open' : ''}` });
       li.style.setProperty('--d', `${Math.min(i * 30, 360)}ms`);
       const main = h('button', { class: 'pp-main', type: 'button', 'aria-expanded': String(open) },
         h('span', { class: 'pp-av', 'aria-hidden': 'true' }, initials(p.name)),
@@ -492,7 +492,7 @@
       const call = p.phone ? h('a', { class: 'pp-call', href: `tel:${p.phone}` }, p.phone) : '—';
       const more = h('div', { class: 'pp-more' }, h('div', null, h('dl', { class: 'pp-dl' },
         h('dt', null, 'Phone'), h('dd', null, call),
-        h('dt', null, 'College'), h('dd', null, p.institution || '—', p.counted ? null : h('span', { class: 'tag-off' }, 'not counted')),
+        h('dt', null, 'College'), h('dd', null, p.institution || '—'),
         h('dt', null, 'Event'), h('dd', null, ev.name),
         p.genre ? h('dt', null, 'Genre') : null, p.genre ? h('dd', null, p.genre) : null,
         ev.open ? h('dt', null, 'Submissions') : null, ev.open ? h('dd', null, String(p.submissions)) : null,
