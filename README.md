@@ -33,9 +33,10 @@ Registrations from excluded colleges are listed but marked "not counted".
 1. In the **REFERRALS** tab, put the header **PASSWORD** in the first empty column (e.g. K1).
 2. Open **Extensions → Apps Script**, add a new script file, paste `apps-script/RepPasswords.gs`,
    and save. Reload the sheet: a **Referral portal** menu appears.
-3. **Referral portal → Generate missing passwords** fills a password (like `PRK-7QMX-4KTD`) for every
+3. **Referral portal → Generate missing passwords** fills an easy password (a word + 3 digits, like `shutter482`) for every
    row that has a referral code. Run it again whenever you add new referrers; existing passwords stay.
-   **Reset password for selected row(s)** issues a new one and signs that rep out.
+   **Reset password for selected row(s)** issues a new one and signs that rep out; **Replace ALL
+   passwords** renews everyone's. Passwords are checked ignoring capital letters and spaces.
 4. Send each representative their code and password privately.
 
 You can also type passwords by hand. The forms don't ask for year of study, so the portal can't
