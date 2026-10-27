@@ -20,12 +20,44 @@ Vercel function /api/board ── names, institutions, counts only ──► bro
 Phone numbers, emails, payment details and **referral codes** are never sent to the browser. Codes end
 in phone digits, so they stay private too.
 
+## Representative portal
+
+A **Rep login** button in the header lets each college representative sign in with their
+**referral code** and a **password** from the sheet. They then see a welcome page with their
+registrations, submissions and rank, an event filter, and the list of people who registered with
+their code. Tap a person to see their phone number (tap to call), college, event, genre and date.
+Registrations from excluded colleges are listed but marked "not counted".
+
+**What to add to the sheet (once):**
+
+1. In the **REFERRALS** tab, put the header **PASSWORD** in the first empty column (e.g. K1).
+2. Open **Extensions → Apps Script**, add a new script file, paste `apps-script/RepPasswords.gs`,
+   and save. Reload the sheet: a **Referral portal** menu appears.
+3. **Referral portal → Generate missing passwords** fills a password (like `PRK-7QMX-4KTD`) for every
+   row that has a referral code. Run it again whenever you add new referrers; existing passwords stay.
+   **Reset password for selected row(s)** issues a new one and signs that rep out.
+4. Send each representative their code and password privately.
+
+You can also type passwords by hand. The forms don't ask for year of study, so the portal can't
+show it; add a "Year" question to the forms if you need it.
+
+**Security:** passwords are only read on the server and never sent to any browser. Sessions last
+7 days in an HttpOnly, Secure, SameSite=Strict `__Host-` cookie signed with `SESSION_SECRET` and
+tied to the current password. Wrong attempts are limited per connection (8), per code (10) and
+overall per 15 minutes. A rep can only ever see registrations made with their own code.
+
 ## Folder layout
 
 | Path | What it is |
 | --- | --- |
 | `public/` | The website (plain HTML/CSS/JS, no build step) |
-| `api/board.js` | Public endpoint: reads the sheet, caches 60 s, rate-limited |
+| `api/board.js` | Public leaderboard (names, institutions, counts only) |
+| `api/login.js` | Representative sign-in / sign-out |
+| `api/me.js` | The signed-in representative's own registrations (private) |
+| `lib/store.js` | Shared, cached sheet loader |
+| `lib/reps.js` | Finds a rep and collects their registrations from the RAW_ tabs |
+| `lib/session.js` | Signed session cookie, lockouts |
+| `apps-script/RepPasswords.gs` | "Referral portal" menu that generates passwords in the sheet |
 | `lib/board.js` | Turns the sheet's tabs into the leaderboard |
 | `lib/sheets.js` | Google Sheets reader (service account, read-only) |
 
@@ -74,6 +106,7 @@ click its A1 cell and press **Allow access** once while signed in as yourself.
 | --- | --- |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | open the downloaded `.json`, copy everything, paste |
 | `REFERRAL_SHEET` | the referral sheet's link (or just its ID) |
+| `SESSION_SECRET` | any long random text (signs rep sessions; changing it signs everyone out) |
 
 3. **Deploy**. If you change a variable later: **Deployments → ⋯ → Redeploy**.
 

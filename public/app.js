@@ -287,6 +287,222 @@
   });
   setTab(location.hash === '#referrers' ? 'referrers' : 'colleges', { push: false });
 
+  // ---------------------------------------------------------------- representative portal
+  const R = {
+    btn: $('#repBtn'), btnLabel: $('#repBtnLabel'),
+    sheet: $('#loginSheet'), form: $('#loginForm'), code: $('#repCode'), pw: $('#repPw'), eye: $('#repEye'), err: $('#loginErr'), go: $('#loginGo'),
+    portal: $('#portal'), back: $('#pBack'), out: $('#pOut'),
+    welcome: $('#pWelcome'), meta: $('#pMeta'), regs: $('#pRegs'), subs: $('#pSubs'), rank: $('#pRank'),
+    events: $('#pEvents'), search: $('#pSearch'), list: $('#pList'), empty: $('#pEmpty'),
+  };
+  const P = { data: null, filter: 'ALL', q: '', open: new Set(), timer: 0 };
+  const HINT = 'prk_rep_hint';
+  const hint = {
+    get: () => { try { return localStorage.getItem(HINT) === '1'; } catch { return false; } },
+    set: (on) => { try { if (on) localStorage.setItem(HINT, '1'); else localStorage.removeItem(HINT); } catch { /* private mode */ } },
+  };
+  const lock = (on) => document.documentElement.classList.toggle('lock', on);
+  const fmtWhen = (w) => (w ? new Intl.DateTimeFormat('en-IN', { timeZone: 'UTC', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(`${w}:00Z`)) : '—');
+  const initials = (name) => { const p = name.split(' ').filter(Boolean); return ((p[0] || '')[0] + (p.length > 1 ? p[p.length - 1][0] : (p[0] || '')[1] || '')).toUpperCase(); };
+
+  function syncBtn() {
+    const inn = hint.get();
+    R.btn.classList.toggle('is-in', inn);
+    R.btnLabel.textContent = inn ? 'My referrals' : 'Rep login';
+  }
+
+  // ---- login sheet
+  function openSheet() {
+    R.sheet.hidden = false;
+    R.sheet.classList.remove('is-closing');
+    R.err.textContent = '';
+    lock(true);
+    setTimeout(() => (R.code.value ? R.pw : R.code).focus({ preventScroll: true }), 320);
+  }
+  function closeSheet() {
+    if (R.sheet.hidden) return;
+    R.sheet.classList.add('is-closing');
+    setTimeout(() => { R.sheet.hidden = true; R.sheet.classList.remove('is-closing'); if (R.portal.hidden) lock(false); }, calm() ? 0 : 260);
+  }
+  R.sheet.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeSheet(); });
+  R.eye.addEventListener('click', () => {
+    const show = R.pw.type === 'password';
+    R.pw.type = show ? 'text' : 'password';
+    R.eye.setAttribute('aria-pressed', String(show));
+    R.eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  });
+  R.code.addEventListener('input', () => { const pos = R.code.selectionStart; R.code.value = R.code.value.toUpperCase(); R.code.setSelectionRange(pos, pos); });
+
+  function wrong(msg) {
+    R.err.textContent = msg;
+    R.form.classList.remove('is-wrong');
+    void R.form.offsetWidth;
+    R.form.classList.add('is-wrong');
+    try { navigator.vibrate?.(30); } catch { /* unsupported */ }
+  }
+
+  R.form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = R.code.value.trim();
+    const password = R.pw.value;
+    if (!code || !password) { wrong('Enter your referral code and password.'); return; }
+    R.go.disabled = true;
+    R.err.textContent = '';
+    try {
+      const res = await fetch('/api/login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, password }) });
+      if (res.status === 204) {
+        R.pw.value = '';
+        hint.set(true);
+        syncBtn();
+        closeSheet();
+        openPortal();
+        return;
+      }
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 429) wrong(`Too many tries. Wait ${Math.ceil((body.retryAfter || 900) / 60)} min and try again.`);
+      else if (res.status === 403) wrong('No password has been set for this code yet. Ask the organisers.');
+      else if (res.status >= 500) wrong("Can't sign in right now. Try again in a minute.");
+      else wrong('That code and password don’t match.');
+    } catch {
+      wrong('No connection. Try again.');
+    } finally {
+      R.go.disabled = false;
+    }
+  });
+
+  // ---- portal
+  function openPortal() {
+    if (R.portal.hidden) {
+      R.portal.hidden = false;
+      R.portal.classList.remove('is-closing', 'is-ready');
+      R.portal.scrollTop = 0;
+      lock(true);
+      if (location.hash !== '#me') history.pushState({ portal: 1 }, '', '#me');
+    }
+    loadMe();
+  }
+  function closePortal({ fromHistory = false } = {}) {
+    if (R.portal.hidden) return;
+    clearTimeout(P.timer);
+    R.portal.classList.add('is-closing');
+    setTimeout(() => { R.portal.hidden = true; R.portal.classList.remove('is-closing'); lock(false); }, calm() ? 0 : 280);
+    if (!fromHistory && location.hash === '#me') history.back();
+  }
+  R.back.addEventListener('click', () => closePortal());
+  addEventListener('popstate', () => { if (location.hash !== '#me') { closePortal({ fromHistory: true }); closeSheet(); } });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!R.sheet.hidden) closeSheet(); else if (!R.portal.hidden) closePortal(); } });
+
+  R.btn.addEventListener('click', () => (hint.get() ? openPortal() : openSheet()));
+
+  R.out.addEventListener('click', async () => {
+    try { await fetch('/api/login', { method: 'DELETE', credentials: 'same-origin' }); } catch { /* sign out locally anyway */ }
+    hint.set(false);
+    syncBtn();
+    P.data = null;
+    closePortal();
+  });
+
+  async function loadMe() {
+    clearTimeout(P.timer);
+    try {
+      const res = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
+      if (res.status === 401) {
+        hint.set(false);
+        syncBtn();
+        closePortal();
+        setTimeout(openSheet, 300);
+        return;
+      }
+      const body = await res.json();
+      if (!res.ok) throw new Error('bad');
+      renderPortal(body);
+      P.timer = setTimeout(() => { if (!R.portal.hidden && !document.hidden) loadMe(); }, 60_000);
+    } catch {
+      if (!P.data) { R.empty.textContent = "Can't load your referrals right now. Retrying…"; R.empty.hidden = false; }
+      P.timer = setTimeout(() => { if (!R.portal.hidden) loadMe(); }, 20_000);
+    }
+  }
+
+  function renderPortal(d) {
+    const first = !P.data || P.data.code !== d.code;
+    P.data = d;
+    if (first) {
+      let i = 0;
+      R.welcome.setAttribute('aria-label', d.firstName);
+      R.welcome.replaceChildren(...[...d.firstName].map((c) => { const ch = h('span', { class: 'ch' }, c); ch.style.setProperty('--i', String(i++)); return ch; }));
+      R.meta.replaceChildren(h('span', null, d.name), d.institution ? h('span', null, d.institution) : null, h('span', null, d.code));
+      requestAnimationFrame(() => R.portal.classList.add('is-ready'));
+    }
+    roll(R.regs, d.registrations);
+    roll(R.subs, d.submissions);
+    R.rank.textContent = d.rank ? `#${d.rank}` : '—';
+
+    const total = d.people.length;
+    const chips = [{ key: 'ALL', name: 'All', count: total, sub: plural(total, 'person', 'people') },
+      ...d.events.map((e) => ({ key: e.key, name: e.name, count: d.people.filter((p) => p.event === e.key).length, sub: e.open ? `${e.submissions} ${plural(e.submissions, 'sub')}` : 'registered' }))];
+    if (!chips.some((c) => c.key === P.filter)) P.filter = 'ALL';
+    R.events.replaceChildren(...chips.map((c) => {
+      const b2 = h('button', { class: 'p-chip', type: 'button', 'aria-pressed': String(c.key === P.filter) }, h('span', null, c.name), b(nf.format(c.count)), h('span', null, c.sub));
+      b2.addEventListener('click', () => { P.filter = c.key; $$('.p-chip', R.events).forEach((x) => x.setAttribute('aria-pressed', String(x === b2))); renderPeople(); });
+      return b2;
+    }));
+    renderPeople();
+  }
+
+  function chev() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('width', '18'); svg.setAttribute('height', '18');
+    svg.setAttribute('class', 'pp-chev'); svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'm6 9 6 6 6-6'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '2'); path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
+    svg.append(path);
+    return svg;
+  }
+
+  function renderPeople() {
+    const d = P.data;
+    const q = P.q.trim().toLowerCase();
+    const evName = Object.fromEntries(d.events.map((e) => [e.key, e]));
+    const rows = d.people.filter((p) => (P.filter === 'ALL' || p.event === P.filter) && (!q || p.name.toLowerCase().includes(q)));
+    R.list.replaceChildren(...rows.slice(0, 400).map((p, i) => {
+      const id = `${p.event}|${p.name}|${p.when}`;
+      const ev = evName[p.event] || { name: p.event, open: false };
+      const open = P.open.has(id);
+      const li = h('li', { class: `pp${open ? ' is-open' : ''}${p.counted ? '' : ' is-off'}` });
+      li.style.setProperty('--d', `${Math.min(i * 30, 360)}ms`);
+      const main = h('button', { class: 'pp-main', type: 'button', 'aria-expanded': String(open) },
+        h('span', { class: 'pp-av', 'aria-hidden': 'true' }, initials(p.name)),
+        h('span', { class: 'pp-who' }, b(p.name), h('span', null, `${ev.name} · ${fmtWhen(p.when)}`)),
+        h('span', { class: 'pp-n' }, b(ev.open ? nf.format(p.submissions) : '✓'), h('small', null, ev.open ? plural(p.submissions, 'sub') : 'reg')),
+        chev());
+      const call = p.phone ? h('a', { class: 'pp-call', href: `tel:${p.phone}` }, p.phone) : '—';
+      const more = h('div', { class: 'pp-more' }, h('div', null, h('dl', { class: 'pp-dl' },
+        h('dt', null, 'Phone'), h('dd', null, call),
+        h('dt', null, 'College'), h('dd', null, p.institution || '—', p.counted ? null : h('span', { class: 'tag-off' }, 'not counted')),
+        h('dt', null, 'Event'), h('dd', null, ev.name),
+        p.genre ? h('dt', null, 'Genre') : null, p.genre ? h('dd', null, p.genre) : null,
+        ev.open ? h('dt', null, 'Submissions') : null, ev.open ? h('dd', null, String(p.submissions)) : null,
+        h('dt', null, 'Registered'), h('dd', null, fmtWhen(p.when)))));
+      main.addEventListener('click', () => {
+        const next = !li.classList.contains('is-open');
+        li.classList.toggle('is-open', next);
+        main.setAttribute('aria-expanded', String(next));
+        if (next) P.open.add(id); else P.open.delete(id);
+      });
+      li.append(main, more);
+      return li;
+    }));
+    R.empty.hidden = rows.length > 0;
+    if (!rows.length) R.empty.textContent = d.people.length ? 'No one matches that search.' : 'No one has registered with your code yet. Share it around!';
+  }
+  let st = 0;
+  R.search.addEventListener('input', () => { clearTimeout(st); st = setTimeout(() => { P.q = R.search.value.slice(0, 60); if (P.data) renderPeople(); }, 120); });
+
+  syncBtn();
+  if (location.hash === '#me' && hint.get()) openPortal();
+
   // ---------------------------------------------------------------- page
   $$('[data-reveal]').forEach((n) => reveal(n));
   let queued = false;
