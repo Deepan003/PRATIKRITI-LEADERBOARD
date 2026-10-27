@@ -27,8 +27,8 @@
 
   const el = {
     bar: $('#bar'), live: $('#live'), liveLabel: $('#liveLabel'),
-    tSubs: $('#tSubs'), tInst: $('#tInst'), tRefs: $('#tRefs'),
-    champ: $('#champ'), champName: $('#champName'), champCount: $('#champCount'), champLead: $('#champLead'),
+    tSubs: $('#tSubs'), tRegs: $('#tRegs'), tInst: $('#tInst'), tRefs: $('#tRefs'),
+    champ: $('#champ'), champName: $('#champName'), champCount: $('#champCount'), champRegs: $('#champRegs'), champLead: $('#champLead'),
     podium: $('#podium'), refList: $('#refList'), instList: $('#instList'), instMore: $('#instMore'),
     events: $('#events'), error: $('#error'),
   };
@@ -124,6 +124,7 @@
     S.sig = sig;
     S.data = data;
     roll(el.tSubs, data.totals.submissions);
+    el.tRegs.textContent = regs(data.totals.registrations, 'registration');
     roll(el.tInst, data.totals.institutions);
     roll(el.tRefs, data.totals.referrers);
     renderChamp(first);
@@ -156,6 +157,7 @@
       if (calm() || !first) el.champ.classList.add('is-in'); else reveal(el.champ);
     }
     roll(el.champCount, lead ? lead.submissions : 0);
+    el.champRegs.textContent = lead ? regs(lead.registrations, 'registration') : '';
     if (!lead) el.champLead.textContent = 'The first submission takes the lead.';
     else if (second && second.submissions === lead.submissions) el.champLead.replaceChildren('Tied with ', b(second.name));
     else if (second) el.champLead.replaceChildren(b(`${lead.submissions - second.submissions} ahead`), ` of ${second.name}`);
@@ -172,10 +174,11 @@
     }
     const pods = refs.slice(0, 3).map((r, i) => {
       const rank = i + 1;
-      return h('article', { class: 'pod', 'data-rank': rank, 'aria-label': `${rank}. ${r.name}, ${r.institution}: ${r.submissions} ${plural(r.submissions, 'submission')}` },
+      return h('article', { class: 'pod', 'data-rank': rank, 'aria-label': `${rank}. ${r.name}, ${r.institution}: ${r.submissions} ${plural(r.submissions, 'submission')}, ${regs(r.registrations, 'registration')}` },
         h('div', { class: 'pod-top' },
           h('span', { class: 'medal', 'aria-hidden': 'true' }, rank),
-          h('span', { class: 'pod-num', 'aria-hidden': 'true' }, b(nf.format(r.submissions)), h('small', null, plural(r.submissions, 'submission')))),
+          h('span', { class: 'pod-num', 'aria-hidden': 'true' }, b(nf.format(r.submissions)), h('small', null, plural(r.submissions, 'submission')),
+            h('small', { class: 'reg' }, regs(r.registrations, 'registration')))),
         h('p', { class: 'pod-name', 'aria-hidden': 'true' }, r.name),
         h('p', { class: 'pod-inst', 'aria-hidden': 'true' }, r.institution || '—'));
     });
@@ -183,7 +186,7 @@
     pods.forEach((p, i) => reveal(p, i === 0 ? 0 : 120 + i * 90));
 
     const max = Math.max(1, refs[0].submissions);
-    el.refList.replaceChildren(...refs.slice(3, 20).map((r, i) => row(r.rank, r.name, r.institution, r.submissions, max, i)));
+    el.refList.replaceChildren(...refs.slice(3, 20).map((r, i) => row(r.rank, r.name, r.institution, r.submissions, r.registrations, max, i)));
   }
 
   // ---------------------------------------------------------------- institutions
@@ -192,7 +195,7 @@
     const list = all.slice(1); // #1 is the hero card above
     const shown = S.showAllInst ? list : list.slice(0, 7);
     const max = Math.max(1, all[0] ? all[0].submissions : 1);
-    el.instList.replaceChildren(...shown.map((x, i) => row(x.rank, x.name, eventLine(x), x.submissions, max, i)));
+    el.instList.replaceChildren(...shown.map((x, i) => row(x.rank, x.name, eventLine(x), x.submissions, x.registrations, max, i)));
     if (!list.length) el.instList.replaceChildren(h('li', { class: 'pod-empty' }, 'More institutions appear as entries come in.'));
     el.instMore.hidden = list.length <= 7;
     el.instMore.textContent = S.showAllInst ? 'Show less' : `Show all ${all.length}`;
@@ -204,11 +207,17 @@
       || `${x.registrations} ${plural(x.registrations, 'entry', 'entries')}`;
   }
 
-  function row(rank, title, sub, value, max, i) {
+  /** "1,204 registrations" — the secondary count shown under every submission number. */
+  function regs(n, word) {
+    return `${nf.format(n)} ${plural(n, word)}`;
+  }
+
+  function row(rank, title, sub, value, registrations, max, i) {
     const li = h('li', { class: `row${value ? '' : ' is-zero'}`, 'data-reveal': true },
       h('span', { class: 'rk' }, String(rank).padStart(2, '0')),
       h('span', { class: 'who' }, b(title), h('span', null, sub || '')),
-      h('span', { class: 'score' }, b(nf.format(value)), h('small', null, plural(value, 'sub'))));
+      h('span', { class: 'score' }, b(nf.format(value)), h('small', null, plural(value, 'sub')),
+        h('small', { class: 'reg' }, regs(registrations, 'reg'))));
     li.style.setProperty('--w', (value / max).toFixed(3));
     reveal(li, Math.min(i * 50, 400));
     return li;
@@ -221,7 +230,8 @@
         h('p', { class: 'ev-name' }, e.name),
         h('span', { class: 'ev-state' }, e.open ? h('i', { 'aria-hidden': 'true' }) : null, e.open ? 'Submissions open' : 'Opens soon'),
         h('p', { class: 'ev-num' }, nf.format(e.open ? e.submissions : e.registrations)),
-        h('p', { class: 'ev-unit' }, e.open ? plural(e.submissions, 'submission') : plural(e.registrations, 'registration')));
+        h('p', { class: 'ev-unit' }, e.open ? plural(e.submissions, 'submission') : plural(e.registrations, 'registration')),
+        e.open ? h('p', { class: 'ev-reg' }, regs(e.registrations, 'registration')) : null);
       reveal(card, i * 70);
       return card;
     }));
