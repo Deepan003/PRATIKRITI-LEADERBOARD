@@ -37,7 +37,9 @@ Registrations from excluded colleges are listed but marked "not counted".
    row that has a referral code. Run it again whenever you add new referrers; existing passwords stay.
    **Reset password for selected row(s)** issues a new one and signs that rep out; **Replace ALL
    passwords** renews everyone's. Passwords are checked ignoring capital letters and spaces.
-4. Send each representative their code and password privately.
+4. Select a rep's row (or several) and use **Referral portal → Welcome message for selected row(s)**:
+   it shows a ready-to-send greeting with their code, password and the website link, with
+   **Copy message** and **Send on WhatsApp** buttons (WhatsApp opens a chat with their MOBILE number).
 
 You can also type passwords by hand. The forms don't ask for year of study, so the portal can't
 show it; add a "Year" question to the forms if you need it.

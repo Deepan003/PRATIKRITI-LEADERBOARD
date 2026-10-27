@@ -295,7 +295,7 @@
     welcome: $('#pWelcome'), meta: $('#pMeta'), regs: $('#pRegs'), subs: $('#pSubs'), rank: $('#pRank'),
     events: $('#pEvents'), search: $('#pSearch'), list: $('#pList'), empty: $('#pEmpty'),
   };
-  const P = { data: null, filter: 'ALL', q: '', open: new Set(), timer: 0 };
+  const P = { data: null, filter: 'ALL', q: '', open: new Set(), timer: 0, replay: true };
   const HINT = 'prk_rep_hint';
   const hint = {
     get: () => { try { return localStorage.getItem(HINT) === '1'; } catch { return false; } },
@@ -376,6 +376,7 @@
       R.portal.hidden = false;
       R.portal.classList.remove('is-closing', 'is-ready');
       R.portal.scrollTop = 0;
+      P.replay = true; // play the welcome animation again every time the page opens
       lock(true);
       if (location.hash !== '#me') history.pushState({ portal: 1 }, '', '#me');
     }
@@ -424,13 +425,14 @@
   }
 
   function renderPortal(d) {
-    const first = !P.data || P.data.code !== d.code;
+    const first = P.replay || !P.data || P.data.code !== d.code;
+    P.replay = false;
     P.data = d;
     if (first) {
       let i = 0;
       R.welcome.setAttribute('aria-label', d.firstName);
       R.welcome.replaceChildren(...[...d.firstName].map((c) => { const ch = h('span', { class: 'ch' }, c); ch.style.setProperty('--i', String(i++)); return ch; }));
-      R.meta.replaceChildren(h('span', null, d.name), d.institution ? h('span', null, d.institution) : null, h('span', null, d.code));
+      R.meta.replaceChildren(h('span', null, [d.institution, d.code].filter(Boolean).join(' · ')));
       requestAnimationFrame(() => R.portal.classList.add('is-ready'));
     }
     roll(R.regs, d.registrations);
